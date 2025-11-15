@@ -1,0 +1,103 @@
+A simple single-user/volume file system for S16
+
+This file system uses 2048 byte blocks.
+
+Structure:
+
+Block       blocks      ?
+0           1           super block 
+1           2           block tables
+^^^^
+    Note: this contains 64 byte tables that contain 32 word-wide block numbers for the files data.
+
+3           1           first root block 
+^^^^
+    Note: this is only the first block of the root directory! There may be more, read the first file to load the rest if needed.
+
+4           N           data
+
+Super block structure:
+
+Wait! What does the super block have?
+The super block contains the boot record, meta data, boot directory, and a bitmap to track free/used blocks.
+
+Offset      size            ?
+0000h       512 bytes       boot record
+0200h       12 bytes        oem in acsii and padded with blanks
+020Ch       2 bytes         total blocks reserved
+020Eh       256 bytes       free / used blocks bitmap
+030Eh       242 bytes       reserved
+0400h       1024 bytes      boot directory 
+^^^^
+    Wait a minute! What is the boot directory?
+    The boot directory is a special directory for operating system only files! Where / what these files are, is defined by the operating system.
+    You could have a file table for your kernel and easily load it into memory without navigating through the root directory / sub-directories.
+    The boot directory is fixed size and it is linear.
+
+Block table structure:
+
+Wait! What are block tables?
+Block tables are stored in a reserved spot, and contain a bunch of word-wide block numbers that can be used to safely get a files data.
+
+Offset      size            ?
+0000h       64 bytes        block numbers[32]
+^^^^
+    This contains 32 word-wide block numbers that can be used to locate data.
+    You can get the absolute starting sector easily by just doing:
+    Block number << 11 or just Block number * 2048
+
+File table structure:
+
+Wait! Where are file tables stored?
+File tables are stored in directories, they contain information about a single file.
+
+Offset      size            ?
+0000h       12 bytes        file name
+000Ch       2 bytes         block table number
+^^^^
+    If you want to access the files data you need a block table, and this can be used to locate the files block table.
+    You can get the byte offset for the block table by simply doing:
+    Block table number << 6 or just Block table number * 64
+
+000Eh       1 byte          file attributes
+000Fh       1 byte          allocated blocks (1 - 32)
+
+File attributes:
+
+0 0 0 0 0 0 0 0 B (byte)
+    | | | | | |
+    | | | | | ------- Read-only (bit 0)
+    | | | | --------- System (bit 1)
+    | | | ----------- Executable (bit 2)
+    | | ------------- Directory (bit 3)
+    | --------------- End of directory (bit 4)
+    ----------------- Deleted (bit 5)
+^^^^
+    If you encounter a file with attribute "end of directory" (bit 4), then do not read it and stop reading the directory.
+    If you encounter a file with attribute "deleted" (bit 5), then you can either skip it or you can overwrite it and reuse its block table number.
+
+Reserved file tables in directories:
+
+Wait! Why are there reserved file tables?
+Because we need a easier way to navigate through directories, and navigate backwards.
+
+File        ?                       file name
+0           current directory       "." (padded with blanks)
+^^^^
+    This can be used to access the rest of the root directory.
+    This file has the same exact block table number as the direcotry, it basically just points back to the directory.
+
+1           parent directory        ".." (padded with blanks)
+^^^^
+    This can be used to access the parent directory and it contains the same block table number as the parent directory.
+    For the root directory, this will just point back to the root directory.
+
+Extra notes:
+
+You should probably know these:
+
+Constraint              ?
+File size limit         64KiB
+Volume size limit       4MB
+
+Feel free to implement it anyway you want!
