@@ -12,7 +12,8 @@ Block       blocks      ?
 
 5           1           root directory
 ^^^^
-    Note: all directories, including the root directory are fixed at one block! No less and no more.
+    This is the only directory.
+    All unused slots/files in this directory need to be marked with attribute "unused" (bit 3).
 
 6           N           data
 
@@ -24,15 +25,19 @@ The super block contains the boot record, meta data, a bitmap to track free/used
 Offset      size            ?
 0000h       512 bytes       boot record
 0200h       12 bytes        oem in acsii and padded with blanks
-020Ch       2 bytes         total blocks reserved
+020Ch       2 bytes         total blocks reserved for volume
 020Eh       256 bytes       free / used blocks bitmap
 ^^^^
+    Starts at MSB.
+
     You can easily check if a block is free or is being used by doing:
     byte in bitmap = block number >> 3 or just block number / 8
     bit in byte = block number & 7 or just block number % 8
 
 030Eh       16 bytes         free / used block tables bitmap
 ^^^^
+    Starts at MSB.
+
     You can easily check if a block table is free or is being used by doing:
     byte in bitmap = block table number >> 3 or just block table number / 8
     bit in byte = block table number & 7 or just block table % 8
@@ -61,20 +66,11 @@ File tables are stored in directories, they contain information about a single f
 
 Offset      size            ?
 0000h       12 bytes        file name
-000Ch       2 bytes         block table number / single block number for directories
+000Ch       2 bytes         block table number
 ^^^^
     If you want to access the files data you need a block table, and this can be used to locate the files block table.
     You can get the byte offset for the block table by simply doing:
     Block table number << 6 or just Block table number * 64
-
-    This field will have a single block number instead of a block table number for directories!
-    You can figure out which is which by checking the file attribute and see if it has "directory" (bit 3),
-    if it does then assume single block number and if not then assume block table number.
-    You can get the absolute starting sector easily by just doing:
-    (Block number << 11) >> log2(bytes per sector) or just Block number * 2048 / bytes per sector
-    If you assume 512 byte sectors you can simply just do Block number << 2
-    If you assume 1024 byte sectors you can also just do Block number << 1
-    If you assume 2048 byte sectors then you can just outright use the block number.
 
 000Eh       1 byte          file attributes
 000Fh       1 byte          allocated blocks (1 - 32)
@@ -82,42 +78,26 @@ Offset      size            ?
 File attributes:
 
 0 0 0 0 0 0 0 0 B (byte)
-    | | | | | |
-    | | | | | ------- Read-only (bit 0)
-    | | | | --------- System (bit 1)
-    | | | ----------- Executable (bit 2)
-    | | ------------- Directory (bit 3)
-    | --------------- End of directory (bit 4)
-    ----------------- Deleted (bit 5)
+      | | | | |
+      | | | | ------- Read-only (bit 0)
+      | | | --------- System (bit 1)
+      | | ----------- Executable (bit 2)
+      | --------------- Unused (bit 3)
+      ----------------- Deleted (bit 4)
 ^^^^
-    If you encounter a file with attribute "end of directory" (bit 4), then do not read it and stop reading the directory.
-    If you encounter a file with attribute "deleted" (bit 5), then you can either skip it or you can overwrite it and reuse its second field (000Ch).
-    If you encounter a file with attribute "directory" (bit 3), then you need to assume the second field (000Ch)
-    is a single block number instead of a block table number.
-
-Reserved file tables in directories:
-
-Wait! Why are there reserved file tables?
-Because we need a easier way to navigate through directories, and navigate backwards.
-
-File        ?                       file name
-0           current directory       "." (padded with blanks)
-^^^^
-    This file has the same exact block table number as the direcotry, it basically just points back to the directory.
-
-1           parent directory        ".." (padded with blanks)
-^^^^
-    This can be used to access the parent directory and it contains the same single block number as the parent directory.
-    For the root directory, this will just point back to the root directory.
+    If you encounter a file with attribute "unused" (bit 3), then you can either skip or you can completely overwrite it.
+    If you encounter a file with attribute "deleted" (bit 4), then you can either skip it or you can overwrite it and reuse its block table number.
 
 Extra notes:
+
+Just to make sure!
+You should set the bits 15 - 10 in the "free / used blocks bitmap".
 
 You should probably know these:
 
 Constraint              ?
 File size limit         64KiB
 Volume size limit       4MB
-Max allocatable files   128 (directories not included)
-Max files in directory  128
+Max allocatable files   128
 
 Feel free to implement it anyway you want!
