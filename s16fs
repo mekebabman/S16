@@ -6,33 +6,37 @@ Structure:
 
 Block       blocks      ?
 0           1           super block 
-1           2           block tables
+1           3           block tables
 ^^^^
     Note: this contains 64 byte tables that contain 32 word-wide block numbers for the files data.
 
-3           1           first root block 
+4           1           root directory
 ^^^^
-    Note: this is only the first block of the root directory! There may be more, read the first file to load the rest if needed.
+    Note: all directories, including the root directory are fixed at one block! No less and no more.
 
-4           N           data
+5           N           data
 
 Super block structure:
 
 Wait! What does the super block have?
-The super block contains the boot record, meta data, boot directory, and a bitmap to track free/used blocks.
+The super block contains the boot record, meta data, a bitmap to track free/used block tables, and finally a bitmap to track free/used blocks.
 
 Offset      size            ?
 0000h       512 bytes       boot record
 0200h       12 bytes        oem in acsii and padded with blanks
 020Ch       2 bytes         total blocks reserved
-020Eh       256 bytes       free / used blocks bitmap
-030Eh       242 bytes       reserved
-0400h       1024 bytes      boot directory 
+020Eh       486 bytes       reserved
+03F4h       1024 bytes      free / used blocks bitmap
 ^^^^
-    Wait a minute! What is the boot directory?
-    The boot directory is a special directory for operating system only files! Where / what these files are, is defined by the operating system.
-    You could have a file table for your kernel and easily load it into memory without navigating through the root directory / sub-directories.
-    The boot directory is fixed size and it is linear.
+    You can easily check if a block is free or is being used by doing:
+    byte in bitmap = block number >> 3 or just block number / 8
+    bit in byte = block number & 7 or just block number % 8
+
+07F4h       12 bytes         free / used block tables bitmap
+^^^^
+    You can easily check if a block table is free or is being used by doing:
+    byte in bitmap = block table number >> 3 or just block table number / 8
+    bit in byte = block table number & 7 or just block table % 8
 
 Block table structure:
 
@@ -53,11 +57,15 @@ File tables are stored in directories, they contain information about a single f
 
 Offset      size            ?
 0000h       12 bytes        file name
-000Ch       2 bytes         block table number
+000Ch       2 bytes         block table number / single block number for directories
 ^^^^
     If you want to access the files data you need a block table, and this can be used to locate the files block table.
     You can get the byte offset for the block table by simply doing:
     Block table number << 6 or just Block table number * 64
+
+    This field will have a single block number instead of a block table number for directories!
+    You can figure out which is which by checking the file attribute and see if it has "directory" (bit 3),
+    if it does then assume single block number and if not then assume block table number.
 
 000Eh       1 byte          file attributes
 000Fh       1 byte          allocated blocks (1 - 32)
@@ -74,7 +82,9 @@ File attributes:
     ----------------- Deleted (bit 5)
 ^^^^
     If you encounter a file with attribute "end of directory" (bit 4), then do not read it and stop reading the directory.
-    If you encounter a file with attribute "deleted" (bit 5), then you can either skip it or you can overwrite it and reuse its block table number.
+    If you encounter a file with attribute "deleted" (bit 5), then you can either skip it or you can overwrite it and reuse its second field (000Ch).
+    If you encounter a file with attribute "directory" (bit 3), then you need to assume the second field (000Ch)
+    is a single block number instead of a block table number.
 
 Reserved file tables in directories:
 
@@ -84,12 +94,11 @@ Because we need a easier way to navigate through directories, and navigate backw
 File        ?                       file name
 0           current directory       "." (padded with blanks)
 ^^^^
-    This can be used to access the rest of the root directory.
     This file has the same exact block table number as the direcotry, it basically just points back to the directory.
 
 1           parent directory        ".." (padded with blanks)
 ^^^^
-    This can be used to access the parent directory and it contains the same block table number as the parent directory.
+    This can be used to access the parent directory and it contains the same single block number as the parent directory.
     For the root directory, this will just point back to the root directory.
 
 Extra notes:
@@ -98,6 +107,8 @@ You should probably know these:
 
 Constraint              ?
 File size limit         64KiB
-Volume size limit       4MB
+Volume size limit       16MiB
+Max allocatable files   96 (directories not included)
+Max files in directory  128
 
 Feel free to implement it anyway you want!
