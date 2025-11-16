@@ -6,15 +6,15 @@ Structure:
 
 Block       blocks      ?
 0           1           super block 
-1           3           block tables
+1           4           block tables
 ^^^^
     Note: this contains 64 byte tables that contain 32 word-wide block numbers for the files data.
 
-4           1           root directory
+5           1           root directory
 ^^^^
     Note: all directories, including the root directory are fixed at one block! No less and no more.
 
-5           N           data
+6           N           data
 
 Super block structure:
 
@@ -25,18 +25,19 @@ Offset      size            ?
 0000h       512 bytes       boot record
 0200h       12 bytes        oem in acsii and padded with blanks
 020Ch       2 bytes         total blocks reserved
-020Eh       486 bytes       reserved
-03F4h       1024 bytes      free / used blocks bitmap
+020Eh       256 bytes       free / used blocks bitmap
 ^^^^
     You can easily check if a block is free or is being used by doing:
     byte in bitmap = block number >> 3 or just block number / 8
     bit in byte = block number & 7 or just block number % 8
 
-07F4h       12 bytes         free / used block tables bitmap
+030Eh       16 bytes         free / used block tables bitmap
 ^^^^
     You can easily check if a block table is free or is being used by doing:
     byte in bitmap = block table number >> 3 or just block table number / 8
     bit in byte = block table number & 7 or just block table % 8
+
+031Eh       1249 bytes      reserved
 
 Block table structure:
 
@@ -115,8 +116,8 @@ You should probably know these:
 
 Constraint              ?
 File size limit         64KiB
-Volume size limit       16MiB
-Max allocatable files   96 (directories not included)
+Volume size limit       4MB
+Max allocatable files   128 (directories not included)
 Max files in directory  128
 
 Feel free to implement it anyway you want!
