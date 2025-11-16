@@ -48,7 +48,10 @@ Offset      size            ?
 ^^^^
     This contains 32 word-wide block numbers that can be used to locate data.
     You can get the absolute starting sector easily by just doing:
-    Block number << 11 or just Block number * 2048
+    (Block number << 11) >> log2(bytes per sector) or just Block number * 2048 / bytes per sector
+    If you assume 512 byte sectors you can simply just do Block number << 2
+    If you assume 1024 byte sectors you can also just do Block number << 1
+    If you assume 2048 byte sectors then you can just outright use the block number.
 
 File table structure:
 
@@ -67,7 +70,10 @@ Offset      size            ?
     You can figure out which is which by checking the file attribute and see if it has "directory" (bit 3),
     if it does then assume single block number and if not then assume block table number.
     You can get the absolute starting sector easily by just doing:
-    Block number << 11 or just Block number * 2048
+    (Block number << 11) >> log2(bytes per sector) or just Block number * 2048 / bytes per sector
+    If you assume 512 byte sectors you can simply just do Block number << 2
+    If you assume 1024 byte sectors you can also just do Block number << 1
+    If you assume 2048 byte sectors then you can just outright use the block number.
 
 000Eh       1 byte          file attributes
 000Fh       1 byte          allocated blocks (1 - 32)
