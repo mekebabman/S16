@@ -66,6 +66,8 @@ Offset      size            ?
     This field will have a single block number instead of a block table number for directories!
     You can figure out which is which by checking the file attribute and see if it has "directory" (bit 3),
     if it does then assume single block number and if not then assume block table number.
+    You can get the absolute starting sector easily by just doing:
+    Block number << 11 or just Block number * 2048
 
 000Eh       1 byte          file attributes
 000Fh       1 byte          allocated blocks (1 - 32)
