@@ -28,7 +28,7 @@ Offset      size            ?
 020Eh       256 bytes       free / used blocks bitmap
 ^^^^
     Starts at MSB.
-    Block numbers should be 1 based.
+    Block numbers should be 1 based and in little-endian.
 
     You can easily check if a block is free or is being used by doing:
     byte in bitmap = block number >> 3 or just block number / 8
@@ -37,7 +37,7 @@ Offset      size            ?
 030Eh       16 bytes         free / used block tables bitmap
 ^^^^
     Starts at MSB.
-    Block table numbers should be 1 based.
+    Block table numbers should be 1 based and in little-endian.
 
     You can easily check if a block table is free or is being used by doing:
     byte in bitmap = block table number >> 3 or just block table number / 8
@@ -46,13 +46,13 @@ Offset      size            ?
 031Eh       16 bytes        free / used file tables in root directory
 ^^^^
     Starts at MSB.
-    File table numbers should be 1 based.
+    File table numbers should be 1 based and in little-endian,
 
     You can easily check if a file table is free or is being used by doing:
     byte in bitmap = file table number >> 3 or just file table number / 8
     bit in byte = file table number & 7 or just file table number % 8
 
-032Eh       1233 bytes      reserved
+032Eh       1234 bytes      reserved
 
 Block table structure:
 
@@ -76,7 +76,7 @@ File tables are stored in directories, they contain information about a single f
 
 Offset      size            ?
 0000h       12 bytes        file name
-000Ch       2 bytes         block table number
+000Ch       2 bytes         block table number (little-endian)
 ^^^^
     If you want to access the files data you need a block table, and this can be used to locate the files block table.
     You can get the byte offset for the block table by simply doing:
@@ -98,6 +98,9 @@ Extra notes:
 
 Just to make sure!
 You should set the bits 15 - 10 in the "free / used blocks bitmap".
+When deleting a file you should unset its block table number, file table number, and block numbers in the bitmaps.
+When allocating a new file you should read the bitmaps from MSB to LSB until you find a unset block number / block table number / file table number.
+You can cache the reserved blocks for the block tables and the root directory in memory to lower disk overhead.
 
 You should probably know these:
 
