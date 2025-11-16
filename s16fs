@@ -13,7 +13,6 @@ Block       blocks      ?
 5           1           root directory
 ^^^^
     This is the only directory.
-    All unused slots/files in this directory need to be marked with attribute "unused" (bit 3).
 
 6           N           data
 
@@ -29,6 +28,7 @@ Offset      size            ?
 020Eh       256 bytes       free / used blocks bitmap
 ^^^^
     Starts at MSB.
+    Block numbers should be 1 based.
 
     You can easily check if a block is free or is being used by doing:
     byte in bitmap = block number >> 3 or just block number / 8
@@ -37,12 +37,22 @@ Offset      size            ?
 030Eh       16 bytes         free / used block tables bitmap
 ^^^^
     Starts at MSB.
+    Block table numbers should be 1 based.
 
     You can easily check if a block table is free or is being used by doing:
     byte in bitmap = block table number >> 3 or just block table number / 8
-    bit in byte = block table number & 7 or just block table % 8
+    bit in byte = block table number & 7 or just block table number % 8
 
-031Eh       1249 bytes      reserved
+031Eh       16 bytes        free / used file tables in root directory
+^^^^
+    Starts at MSB.
+    File table numbers should be 1 based.
+
+    You can easily check if a file table is free or is being used by doing:
+    byte in bitmap = file table number >> 3 or just file table number / 8
+    bit in byte = file table number & 7 or just file table number % 8
+
+032Eh       1233 bytes      reserved
 
 Block table structure:
 
@@ -78,15 +88,11 @@ Offset      size            ?
 File attributes:
 
 0 0 0 0 0 0 0 0 B (byte)
-      | | | | |
-      | | | | ------- Read-only (bit 0)
-      | | | --------- System (bit 1)
-      | | ----------- Executable (bit 2)
-      | --------------- Unused (bit 3)
-      ----------------- Deleted (bit 4)
-^^^^
-    If you encounter a file with attribute "unused" (bit 3), then you can either skip or you can completely overwrite it.
-    If you encounter a file with attribute "deleted" (bit 4), then you can either skip it or you can overwrite it and reuse its block table number.
+        | | | |
+        | | | ------- Read-only (bit 0)
+        | | --------- System (bit 1)
+        | ----------- Executable (bit 2)
+        ------------- Deleted (bit 3)
 
 Extra notes:
 
