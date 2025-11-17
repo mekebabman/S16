@@ -65,7 +65,7 @@ Offset      size            ?
     byte in bitmap = file table number >> 3 or just file table number / 8
     bit in byte = file table number & 7 or just file table number % 8
 
-0320h       1234 bytes      reserved
+0320h       1248 bytes      reserved
 
 Block table structure:
 
