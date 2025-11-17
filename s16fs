@@ -25,7 +25,7 @@ The super block contains the boot record, meta data, 3 bitmaps to track free/use
 Offset      size            ?
 0000h       495 bytes       boot record code
 01efh       12 bytes        oem in acsii and padded with blanks
-01fbh       2 bytes         total blocks reserved for volume (1 - 2048)
+01fbh       2 bytes         total blocks reserved (1 - 2048)
 01fdh       1 byte          number of heads and sectors per track bitpacked
 ^^^^
     Number of heads and sectors per track should be bitpacked in this order!
