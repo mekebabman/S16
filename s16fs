@@ -13,7 +13,7 @@ Block       blocks      ?
 5           1           root directory
 ^^^^
     This is the only directory.
-    All files in the root directory should be marked with attribute "unused" (bit 3) if they are actually unused.
+    All file tables in the root directory should be marked with attribute "in-use" (bit 3) if they are used.
 
 6           N           data
 
@@ -102,10 +102,10 @@ File attributes:
 
 0 0 0 0 0 0 0 0 B (byte)
         | | | |
-        | | | --------- Read-only (bit 0)
-        | | ----------- System (bit 1) 
+        | | | ---------- Read-only (bit 0)
+        | | ------------ System (bit 1) 
         | -------------- Executable (bit 2)
-        ---------------- Unused (bit 3)
+        ---------------- In-use (bit 3)
 
 Extra notes:
 
