@@ -1,0 +1,42 @@
+A simple specification for S16's boot record.
+
+File to load?: 
+    > "system      " (12 bytes)
+
+File attributes?:
+    > Read-only (bit 0),
+    > System (bit 1)
+
+Load file in memory at?: 
+    > 0000:0500h
+
+Set before performing a far jump to file?:
+    > "dl" should contain the boot drive.
+
+Recommended Implemnation:
+
+1 disable interrupts to ensure safety.
+2 load the root directory into memory.
+3 navigate through the root directory until you find "system      " with attributes read-only, and system.
+4 if successful then load the block tables into memory, if not then error.
+5 use the 2nd field (000Ch) in the file table to get the byte offset for the block table.
+6 use the 4th field (000Fh) in the file table to figure out how many blocks to read linearly starting from the first block in the block table.
+7 read all of the files blocks from the block table to memory at 0000:0500h
+8 put the boot drive into "dl"
+9 perform a far jump to 0000:0500h 
+
+If error:
+
+1 set video mode to 80x25 (int 10,00h with al = 03)
+2 write "Boot error!" to the screen
+3 write "Press any key to reboot.." on a newline
+4 enable interrupts
+5 wait for key press (int 16,00h)
+6 cold reboot with (int 19h)
+
+Notes:
+
+S16's system file does not care about the boot record! It simply just assumes its already been loaded into memory at 0000:0500h with "cs" being
+0000h, "ip" being 0500h, and the boot drive being in "dl". It doesn't care or look for any caches dumped into memory by the boot record! 
+
+Feel free to implement the boot record in anyway you want as long as you load S16's system file properly.
