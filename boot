@@ -117,7 +117,16 @@ read: ; A simple function to read the diskette in blocks and use block addressin
     jc error ; handle the error directly to save bytes
     ret
 
-s16system: db "System      "
+s16system: db "system      "
 errormsg: db "Boot error!", 0Ah, 0Dh
 errorhelp: db "Press any key to reboot.."
 db 495 - ($ - $$) dup(0) ; Pad to 495 bytes
+
+; db "testdiskette" ; oem
+;
+; dw 720 ; total reserved blocks
+;
+; db 31h ; number of heads and sectors per track bitpacked
+;
+; db 55h, 0AAh ; boot signature
+
