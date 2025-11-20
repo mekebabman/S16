@@ -89,11 +89,20 @@ File tables are stored in the root directory, they contain information to repres
 
 Offset      size            ?
 0000h       12 bytes        file name
+^^^^
+    The file name should not have blanks in between letters, and it should be padded with blanks.
+
+    Example wrong: "Hi  World"
+
+    Example right: "Hiworld     "
+
 000Ch       2 bytes         block table number
 ^^^^
     If you want to access the files data you need a block table, and this can be used to locate the files block table.
     You can get the byte offset for the block table by simply doing:
     Block table number << 6 or just Block table number * 64
+
+    Note: only the low byte is used! The high byte should always be zerod out.
 
 000Eh       1 byte          file attributes
 000Fh       1 byte          allocated blocks (1 - 32)
