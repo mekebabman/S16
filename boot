@@ -16,15 +16,16 @@ start:
     mov bx, 7E00h
     call read ; read the root directory into memory
 
-    mov cx, 128 ; the entire root directory
+    mov cx, 128 ; scan through all 128 file tables
 system:
     ; scan the root directory to find S16's system file
 
-    test byte [bx + 0Eh], 08h ; In-use?
+    mov al, [bx + 0Eh]
+    test al, 08h ; In-use?
     jz skip
-    test byte [bx + 0Eh], 01h ; Read-only?
+    test al, 01h ; Read-only?
     jz skip
-    test byte [bx + 0Eh], 02h ; System?
+    test al, 02h ; System?
     jz skip
 
     mov si, s16system
@@ -42,11 +43,14 @@ system:
     mov bx, 8600h
     call read  ; read the reserved blocks for the block tables into memory
 
-    mov ax, [si + 0Ch] 
+    mov al, [si + 0Ch] 
+    xor ah, ah
     shl ax, 6 ; get the byte offset for the block table
     add bx, ax
 
-    mov bp, [si + 0Fh] ; I ran out of registers, so I have to use bp as a counter
+    mov al, [si + 0Fh]
+    xor ah, ah
+    mov bp, ax ; I ran out of registers, so I have to use bp as a counter
     mov si, bx
     mov bx, 0500h
 loadblock:
@@ -113,7 +117,7 @@ read: ; A simple function to read the diskette in blocks and use block addressin
     jc error ; handle the error directly to save bytes
     ret
 
-s16system: db "S16 system  "
+s16system: db "System      "
 errormsg: db "Boot error!", 0Ah, 0Dh
 errorhelp: db "Press any key to reboot.."
 db 495 - ($ - $$) dup(0) ; Pad to 495 bytes
