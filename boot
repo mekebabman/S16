@@ -32,7 +32,7 @@ system:
     mov di, bx
     mov cx, 12
     repe cmpsb
-    jz skip
+    jnz skip
 
     ; file was found!
 
