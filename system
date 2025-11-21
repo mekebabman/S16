@@ -1,0 +1,18 @@
+org 0500h
+
+start:
+    mov ax, 0003h
+    int 10h
+
+    mov ah, 0Eh
+    xor bh, bh
+    mov si, testmessage
+    mov cx, 29
+write:
+    lodsb
+    int 10h
+    loop write
+
+    jmp $
+
+testmessage: db "S16's system file loaded!! :)"
