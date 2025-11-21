@@ -82,34 +82,37 @@ writescreen:
     int 10h
     loop writescreen
 
+    sti ; enable interrupts to get keyboard input
     xor ah, ah ; wait for key press and then cold reboot
     int 16h
     int 19h
 
-read: ; A simple function to read the diskette in blocks and use block addressing
+read: ; A simple function to read the diskette in blocks and address using block numbers
 
-    mov cl, [01fdh] ; bitpack containing zero based number of heads and sectors per track
+    mov cl, [7C00h + 01fdh] ; bitpack containing zero based number of heads and sectors per track
     mov ch, cl
+    and ch, 3Fh ; discard number of heads
     shr cl, 6 ; shift bit 6 to bit 0 and discard the rest
-    and ch, 3Fh ; discard the number of heads
 
-    ; this is basically just lbs to chs math
+    mov di, cx ; preserve the sectors per track in "di"
+    shl ch, cl ; sectors per track << number of heads (zero based)
+    inc cl 
+    add ch, cl ; same result as (SPT * HPC)
+    shl ax, 2 ; convert block number into LBA
+    div ch ; cylinder
 
-    shl ch, cl ; sectors per track << number of heads
-    shl ax, 2
-    div ch  ; get the track
-
-    shr ch, cl ; get back sectors per track
+    mov cx, di ; restore
     mov cl, ch
-    mov ch, al ; put the track into "ch"
-    mov al, ah ; use the reminader of track
+    inc cl
+    mov ch, al ; put cylinder in the right place
+    mov al, ah
     xor ah, ah
-    div cl
+    div cl ; head
     xchg dh, al ; swap blocks to read with head
-    shl al, 2
+    shl al, 2 ; convert blocks to read into 512 byte sectors to read
 
     inc ah
-    mov cl, ah ; put sector into "cl"
+    mov cl, ah ; put sector in the right place
 
     mov ah, 02h
     int 13h
@@ -123,10 +126,24 @@ errorhelp: db "Press any key to reboot.."
 db 495 - ($ - $$) dup(0) ; Pad to 495 bytes
 
 ; db "testdiskette" ; oem
-;
+;  
 ; dw 720 ; total reserved blocks
-;
-; db 31h ; number of heads and sectors per track bitpacked
-;
+;  
+; db 51h ; number of heads and sectors per track bitpacked
+;  
 ; db 55h, 0AAh ; boot signature
-
+;  
+; Free/used blocks
+; db 0FEh
+; db 255 dup(0)
+;  
+; Free/used block tables
+; db 80h
+; db 15 dup(0)
+;  
+; Free/used file tables
+; db 80h
+; db 15 dup(0)
+;  
+; Reserved
+; db 1248 dup(0)
