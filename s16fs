@@ -96,7 +96,7 @@ Offset      size            ?
 
     Example right: "Hiworld     "
 
-000Ch       2 bytes         block table number
+000Ch       2 bytes         block table number (0 - 127)
 ^^^^
     If you want to access the files data you need a block table, and this can be used to locate the files block table.
     You can get the byte offset for the block table by simply doing:
