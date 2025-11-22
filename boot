@@ -20,13 +20,8 @@ start:
 system:
     ; scan the root directory to find S16's system file
 
-    mov al, [bx + 0Eh]
-    test al, 08h ; In-use?
-    jz skip
-    test al, 01h ; Read-only?
-    jz skip
-    test al, 02h ; System?
-    jz skip
+    cmp byte [bx + 0Eh], 0Bh ; Is it marked with attributes: in-use, system, and read-only? Is it not marked with attributes: executable?
+    jne skip
 
     mov si, s16system
     mov di, bx
@@ -38,16 +33,18 @@ system:
 
     mov si, bx
 
-    mov ax, 1
-    mov dh, 4
-    mov bx, 8600h
-    call read  ; read the reserved blocks for the block tables into memory
-
     mov al, [si + 0Ch] 
     xor ah, ah
     shl ax, 6 ; get the byte offset for the block table
-    add bx, ax
-
+    mov bp, ax
+    shr ax, 11 ; get the block to read
+    inc al
+    and bp, 63 ; get the byte offset in the block
+    mov dh, 1 ; read one block
+    mov bx, 8600h
+    call read
+    add bx, bp
+    
     mov al, [si + 0Fh]
     xor ah, ah
     mov bp, ax ; I ran out of registers, so I have to use bp as a counter
