@@ -61,7 +61,7 @@ loadblock:
     dec bp
     jnz loadblock
 
-    jmp 0000:0500h ; far jump to the start of the file
+    jmp 0000h:0500h ; far jump to the start of the file
 skip:
     add bx, 16
     loop system
