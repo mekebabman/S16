@@ -1,18 +1,150 @@
 org 0500h
 
 start:
-    mov ax, 0003h
-    int 10h
+    ; assumptions
+    ; cs:ip is 0000h:0500h
+    ; ss:sp is already set at a safe address by the boot sector
+    ; ds is 0000h
+    ; es is 0000h
+    ; dl contains the boot drive
 
-    mov ah, 0Eh
-    xor bh, bh
-    mov si, testmessage
-    mov cx, 29
-write:
-    lodsb
-    int 10h
-    loop write
+    ; store the boot drive
+    mov byte [bootdrive], dl
 
-    jmp $
+    ; copy the fs meta data
+    mov si, 7DEFh
+    mov di, fsmetadata
+    mov cx, 15
+    rep movsb
 
-testmessage: db "S16's system file loaded!! :)"
+    ; Setup S16's API
+    mov word [8Eh * 4], dispatcher
+    mov word [8Eh * 4 + 2], 0000h
+
+    ; Cache the bitmaps
+
+    ; Cache the root directory
+
+    ; Cache the block tables
+
+    
+
+dispatcher:
+
+    cmp ah, 02h
+    je rwstart
+    cmp ah, 03h
+    je rwstart
+    cmp ah, 0Ah
+    je rwstart
+    cmp ah, 0Bh
+    je rwstart
+
+    stc
+    iret
+
+rwstart: ; read / write diskette blocks
+    ; can only address up to ~15.75 MiB
+    ; can only safely read 32 blocks at once
+
+    push cx
+    push dx
+    push ax
+    push bp
+    push ds
+    push es
+    push bx
+    pushf ; push the flags so we can preserve the interrupt flag
+
+    xor bp, bp
+    mov ds, bp
+
+    mov al, dh
+    shl al, 2 ; convert blocks to read into sectors to read
+    mov word [scratchmem], ax
+    mov ax, cx ; put block number into "ax"
+
+    ; block number -> CHS
+    mov cl, [fsmetadata + 0Fh] ; number of heads and sectors per track bitpacked
+    mov ch, cl
+    and ch, 3Fh ; discard number of heads
+    shr cl, 6 ; shift bit 6 to bit 0 and discard the rest
+
+    mov bp, cx ; preserve
+    shl ch, cl ; sectors per track << number of heads
+    inc cl
+    add ch, cl ; same as (SPT * HPC)
+    shl ax, 2 ; convert block number into LBA
+    div ch
+
+    mov cx, bp ; restore for sectors per track
+    mov cl, ch
+    inc cl
+    mov ch, al ; put cylinder in the right place
+    mov al, ah
+    xor ah, ah
+    div cl
+    mov dh, al ; put head in the right place
+
+    inc ah
+    mov cl, ah ; put sector in the right place
+
+    ; new segment
+    ; segment = segment + (offset / 16)
+    ; offset = offset & 000Fh
+    mov ax, bx
+    shr ax, 4
+    add ax, es
+    mov bp, ax
+    mov es, bp
+    and bx, 000Fh
+
+    mov bp, 6 ; I ran out of registers, so I have to use "bp" as a counter
+rwbioscall:
+    cli ; disable interrupts to ensure safer diskette access
+    mov ax, [scratchmem]
+    int 13h
+
+    jnc rwend
+
+    ; Reset diskette and try again
+    dec bp
+    jz rwend
+
+    xor ah, ah
+    int 13h
+
+    jc rwend ; how did we fail to reset the disk?
+    
+    ; wait ~300ms to allow the diskette to re-sync
+    sti ; interrupts need to be enabled for this
+    mov ax, [046Ch]
+    add ax, 6
+rwwait:
+    cmp word [046Ch], ax
+    jl rwwait
+    
+    jmp rwbioscall ; retry
+rwend:
+
+    ; restore the interrupt flag
+    pop ax
+    test ah, 80h ; check the interrupt flag
+    jz rwifok
+    sti
+rwifok:
+
+    pop bx
+    pop es
+    pop ds
+    pop bp
+    pop ax
+    pop dx
+    pop cx
+    iret
+
+scratchmem: equ 0D00h
+
+; S16 system data area
+bootdrive: equ 1100h
+fsmetadata: equ 1101h
