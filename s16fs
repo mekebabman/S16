@@ -1,4 +1,4 @@
-A simple single-user/volume file system for S16
+A simple single-user file system for S16
 
 This file system uses 2048 byte blocks.
 
