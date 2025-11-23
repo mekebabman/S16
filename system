@@ -27,7 +27,7 @@ start:
 
     ; Cache the block tables
 
-    
+
 
 dispatcher:
 
@@ -45,7 +45,7 @@ dispatcher:
 
 rwstart: ; read / write diskette blocks
     ; can only address up to ~15.75 MiB
-    ; can only safely read 32 blocks at once
+    ; can only read 32 blocks at once
 
     push cx
     push dx
