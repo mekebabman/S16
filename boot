@@ -11,8 +11,8 @@ start:
     mov ss, ax
     mov sp, 7C00h
 
-    mov ax, 5
-    mov dh, 1
+    mov ax, 20
+    mov dh, 4
     mov bx, 7E00h
     call read ; read the root directory into memory
 
@@ -39,8 +39,9 @@ system:
     mov bp, ax
     shr ax, 11 ; get the block to read
     inc al
+    shl ax, 2 ; convert block into 512 byte sector
     and bp, 63 ; get the byte offset in the block
-    mov dh, 1 ; read one block
+    mov dh, 4
     mov bx, 8600h
     call read
     add bx, bp
@@ -53,7 +54,8 @@ system:
 loadblock:
 
     mov ax, [si]
-    mov dh, 1
+    shl ax, 2 ; convert block into 512 byte sector
+    mov dh, 4
     call read ; load block
     
     add bx, 800h
@@ -84,7 +86,7 @@ writescreen:
     int 16h
     int 19h
 
-read: ; A simple function to read the diskette in blocks and address using block numbers
+read:
 
     mov cl, [7C00h + 01fdh] ; bitpack containing zero based number of heads and sectors per track
     mov ch, cl
@@ -95,7 +97,6 @@ read: ; A simple function to read the diskette in blocks and address using block
     shl ch, cl ; sectors per track << number of heads (zero based)
     inc cl 
     add ch, cl ; same result as (SPT * HPC)
-    shl ax, 2 ; convert block number into LBA
     div ch ; cylinder
 
     mov cx, di ; restore
@@ -106,7 +107,6 @@ read: ; A simple function to read the diskette in blocks and address using block
     xor ah, ah
     div cl ; head
     xchg dh, al ; swap blocks to read with head
-    shl al, 2 ; convert blocks to read into 512 byte sectors to read
 
     inc ah
     mov cl, ah ; put sector in the right place
