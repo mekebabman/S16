@@ -35,17 +35,13 @@ dispatcher:
     je rwstart
     cmp ah, 03h
     je rwstart
-    cmp ah, 0Ah
-    je rwstart
-    cmp ah, 0Bh
-    je rwstart
 
     stc
     iret
 
 rwstart: ; read / write diskette blocks
     ; can only address up to ~15.75 MiB
-    ; can only read 32 blocks at once
+    ; can only read 64KiB at once 
 
     push cx
     push dx
@@ -60,7 +56,6 @@ rwstart: ; read / write diskette blocks
     mov ds, bp
 
     mov al, dh
-    shl al, 2 ; convert blocks to read into sectors to read
     mov word [scratchmem], ax
     mov ax, cx ; put block number into "ax"
 
@@ -74,7 +69,6 @@ rwstart: ; read / write diskette blocks
     shl ch, cl ; sectors per track << number of heads
     inc cl
     add ch, cl ; same as (SPT * HPC)
-    shl ax, 2 ; convert block number into LBA
     div ch
 
     mov cx, bp ; restore for sectors per track
@@ -100,8 +94,8 @@ rwstart: ; read / write diskette blocks
     and bx, 000Fh
 
     mov bp, 6 ; I ran out of registers, so I have to use "bp" as a counter
-rwbioscall:
     cli ; disable interrupts to ensure safer diskette access
+rwbioscall:
     mov ax, [scratchmem]
     int 13h
 
@@ -116,14 +110,18 @@ rwbioscall:
 
     jc rwend ; how did we fail to reset the disk?
     
-    ; wait ~300ms to allow the diskette to re-sync
-    sti ; interrupts need to be enabled for this
-    mov ax, [046Ch]
-    add ax, 6
+    ; wait until the diskette is ready
+    push dx
+    mov dx, 03F4h ; FDC main status register port
 rwwait:
-    cmp word [046Ch], ax
-    jl rwwait
-    
+    in al, dx
+    test al, 80h ; RQM
+    jz rwwait
+    test al, 10h ; Busy
+    jnz rwwait
+
+    pop dx
+
     jmp rwbioscall ; retry
 rwend:
 
