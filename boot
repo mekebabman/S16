@@ -11,6 +11,13 @@ start:
     mov ss, ax
     mov sp, 7C00h
 
+    ; Check if drive number is 0 or 1
+    cmp dl, 0
+    je startskip1
+    cmp dl, 1
+    jne error
+startskip1:
+
     mov ax, 20
     mov dh, 4
     mov bx, 7E00h
@@ -118,10 +125,12 @@ read:
     ret
 
 s16system: db "system      "
-errormsg: db "Boot error!", 0Ah, 0Dh
-errorhelp: db "Press any key to reboot.."
-db 495 - ($ - $$) dup(0) ; Pad to 495 bytes
+errormsg: db "boot error!", 0Ah, 0Dh
+errorhelp: db "press any key to reboot.."
+db 493 - ($ - $$) dup(0) ; Pad to 493 bytes
 
+; db 28DAh ; file system signature
+;
 ; db "testdiskette" ; oem
 ;  
 ; dw 720 ; total reserved blocks
@@ -144,3 +153,15 @@ db 495 - ($ - $$) dup(0) ; Pad to 495 bytes
 ;  
 ; Reserved
 ; db 1248 dup(0)
+; 
+; Root directory
+; db "system      " ; file name
+; dw 0 ; block table number
+; db 0Bh ; file attributes
+; db 1 ; allocated blocks
+;  
+; db 2032 dup(0)
+;
+; Block tables
+; db 6
+; db 8191 dup(0)
