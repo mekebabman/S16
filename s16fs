@@ -20,12 +20,16 @@ Block       blocks      ?
 Super block structure:
 
 Wait! What does the super block have?
-The super block contains the boot record, meta data, 3 bitmaps to track free/used blocks, block tables, file tables.
+The super block contains the boot record, meta data, and 3 bitmaps to track free/used blocks, block tables, and file tables.
 
 Offset      size            ?
-0000h       495 bytes       boot record code
+0000h       493 bytes       code
+01edh       2 bytes         file system signature
+^^^^
+    This will always be 28DAh
+
 01efh       12 bytes        oem in acsii and padded with blanks
-01fbh       2 bytes         total blocks reserved (1 - 2048)
+01fbh       2 bytes         total blocks reserved for the file system (1 - 2048)
 01fdh       1 byte          number of heads and sectors per track bitpacked
 ^^^^
     Number of heads and sectors per track should be bitpacked in this order!
@@ -41,7 +45,7 @@ Offset      size            ?
 0200h       256 bytes       free / used blocks bitmap
 ^^^^
     Starts at MSB.
-    Block numbers should be 1 based.
+    Block numbers should be 1 based for the below math:
 
     You can easily check if a block is free or is being used by doing:
     byte in bitmap = block number >> 3 or just block number / 8
@@ -50,7 +54,7 @@ Offset      size            ?
 0300h       16 bytes         free / used block tables bitmap
 ^^^^
     Starts at MSB.
-    Block table numbers should be 1 based.
+    Block table numbers should be 1 based for the below math:
 
     You can easily check if a block table is free or is being used by doing:
     byte in bitmap = block table number >> 3 or just block table number / 8
@@ -59,7 +63,7 @@ Offset      size            ?
 0310h       16 bytes        free / used file tables in root directory
 ^^^^
     Starts at MSB.
-    File table numbers should be 1 based.
+    File table numbers should be 1 based for the below math:
 
     You can easily check if a file table is free or is being used by doing:
     byte in bitmap = file table number >> 3 or just file table number / 8
@@ -75,7 +79,7 @@ Block tables are stored in a reserved spot, and contain a bunch of word-wide blo
 Offset      size            ?
 0000h       64 bytes        block numbers[32]
 ^^^^
-    This contains 32 word-wide block numbers that can be used to locate data.
+    This contains 32 word-wide zero based block numbers that can be used to locate data.
     You can get the absolute starting sector easily by just doing:
     (Block number << 11) >> log2(bytes per sector) or just Block number * 2048 / bytes per sector
     If you assume 512 byte sectors you can simply just do Block number << 2
@@ -123,6 +127,7 @@ You should set the bits 15 - 10 in the "free / used blocks bitmap".
 When deleting a file you should unset its block table number, file table number, and block numbers in the bitmaps and then mark with attribute "unused" (bit 3).
 When allocating a new file you should read the bitmaps from MSB to LSB until you find a unset block number / block table number / file table number.
 You can cache the reserved blocks for the block tables and the root directory in memory to lower disk overhead.
+The file system is not intended for large storage devices or for use with mbr/gpt.
 
 You should probably know these:
 
